@@ -1,7 +1,7 @@
 from fetch import fetch_users
 from transform import clean_users, create_dataframe
 from analyse import analyse_users
-from storage import save_users
+from storage import save_users, save_to_db
 
 users = fetch_users(results=20, seed="test")
 
@@ -26,3 +26,4 @@ print(df["gender"].value_counts())
 print("XXXXXXXXXXXXXXXSTATSXXXXXXXXXXXXXXXXXXXXX")
 print(stats)
 save_users(df)
+save_to_db(df)
