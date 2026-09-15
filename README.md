@@ -1,6 +1,6 @@
 # Random User Project
 
-A small Python pipeline that fetches sample user data from the [Random User Generator API](https://randomuser.me/), cleans and transforms it into a pandas DataFrame, runs basic analysis, and saves the results to CSV and SQLite. A lightweight FastAPI app also exposes the cleaned data and stats over HTTP.
+A small Python pipeline that fetches sample user data from the [Random User Generator API](https://randomuser.me/), cleans and transforms it into a pandas DataFrame, runs basic analysis, and saves the results to CSV and SQLite. A lightweight FastAPI app also exposes the cleaned data and stats over HTTP, and a `Dockerfile` is included to run the whole thing in a container.
 
 ## What it does
 
@@ -22,6 +22,7 @@ src/
   phase1_basics.py   # exploratory/learning script used while building the pipeline
 tests/
   test_transform.py  # unit tests for the transform module
+Dockerfile           # builds an image that runs main.py then serves api.py with uvicorn
 pytest.ini
 requirements.txt
 ```
@@ -51,16 +52,30 @@ This fetches 20 users (with a fixed seed for reproducibility), cleans and transf
 
 ### Running the API
 
-The FastAPI app in `src/api.py` serves the same data over HTTP:
+The FastAPI app in `src/api.py` serves data out of `data/users.db`, so run `python src/main.py` at least once first to populate it:
 
 ```bash
+python src/main.py
 uvicorn api:app --reload --app-dir src
 ```
 
 Endpoints:
 
-- `GET /users` — fetches and returns a fresh batch of cleaned users; supports optional `country` and `gender` query filters (e.g. `/users?country=US&gender=female`).
-- `GET /stats` — fetches a fresh batch and returns the same summary stats produced by `analyse_users`.
+- `GET /users` — reads the `users` table from SQLite; supports optional `country` and `gender` query filters (e.g. `/users?country=US&gender=female`).
+- `GET /stats` — reads the `users` table and returns the same summary stats produced by `analyse_users`.
+
+Note that the data only updates when `main.py` (or the Docker container, see below) is re-run — the API itself doesn't fetch live data.
+
+### Running with Docker
+
+The `Dockerfile` builds a self-contained image: it installs dependencies, then on container start runs `src/main.py` once (to fetch, clean, and save a batch of users into `data/users.db` inside the container) before launching the API.
+
+```bash
+docker build -t randomuser-project .
+docker run -p 8000:8000 randomuser-project
+```
+
+The API is then available at `http://localhost:8000` (`/users`, `/stats`). Since the DB is populated once at container start, restart the container to refresh the data.
 
 ## Testing
 

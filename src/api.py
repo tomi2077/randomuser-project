@@ -1,6 +1,5 @@
 from fastapi import FastAPI
-from fetch import fetch_users
-from transform import clean_users, create_dataframe
+from storage import load_from_db
 from analyse import analyse_users
 
 app = FastAPI()
@@ -8,8 +7,8 @@ app = FastAPI()
 
 @app.get("/users")
 def get_users(country: str = None, gender: str = None):
-    users = fetch_users(results=20)
-    cleaned = clean_users(users)
+    df = load_from_db()
+    cleaned = df.to_dict(orient="records")
 
     if country is not None:
         cleaned = [u for u in cleaned if u["country"] == country]
@@ -18,9 +17,8 @@ def get_users(country: str = None, gender: str = None):
 
     return cleaned
 
+
 @app.get("/stats")
 def get_stats():
-    users = fetch_users(results=20)
-    cleaned = clean_users(users)
-    df = create_dataframe(cleaned)
+    df = load_from_db()
     return analyse_users(df)
